@@ -49,7 +49,7 @@ def extract_audit_entry(hook_input):
 
     entry = {
         "id": str(uuid.uuid4()),
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z"),
         "user": os.environ.get("USER", "unknown"),
         "tool": tool_name,
         "command": None,

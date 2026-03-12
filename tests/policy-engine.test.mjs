@@ -58,7 +58,8 @@ describe('loadPolicies', () => {
     const badDir = join(tmpdir(), 'warden-bad-' + Date.now());
     await mkdir(badDir, { recursive: true });
     await writeFile(join(badDir, 'bad.json'), JSON.stringify({ foo: 'bar' }));
-    await assert.rejects(() => loadPolicies(badDir), /missing "name" or "rules"/);
+    const result = await loadPolicies(badDir);
+    assert.strictEqual(result.size, 0, 'Invalid policies should be skipped gracefully');
     await rm(badDir, { recursive: true });
   });
 

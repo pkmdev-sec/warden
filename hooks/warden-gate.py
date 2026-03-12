@@ -106,7 +106,7 @@ def log_gate_decision(action, violations, decision):
     """Log the gate decision to gate.jsonl."""
     WARDEN_DIR.mkdir(parents=True, exist_ok=True)
     entry = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z"),
         "tool": action.get("tool", "unknown"),
         "command": action.get("command"),
         "path": action.get("path"),
