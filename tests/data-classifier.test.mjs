@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -8,6 +8,12 @@ import {
   classifyFile,
   getSensitivePatterns,
   getSensitivePathPatterns,
+  addCustomRule,
+  removeCustomRule,
+  getCustomRules,
+  clearCustomRules,
+  classifyContentExtended,
+  getMLConfig,
 } from '../lib/data-classifier.mjs';
 
 describe('data-classifier', { concurrency: false }, () => {
@@ -189,6 +195,239 @@ describe('data-classifier', { concurrency: false }, () => {
         assert.ok(p.name);
         assert.ok(p.pattern);
       }
+    });
+  });
+
+  describe('addCustomRule', () => {
+    beforeEach(() => {
+      clearCustomRules();
+    });
+
+    it('should add a custom classification rule', () => {
+      const rule = addCustomRule({
+        name: 'Employee ID',
+        regex: /EMP-\d{6}/g,
+        category: 'pii',
+        severity: 'medium',
+        description: 'Employee identifier',
+      });
+
+      assert.ok(rule);
+      assert.equal(rule.name, 'Employee ID');
+      assert.equal(rule.category, 'pii');
+      assert.equal(rule.severity, 'medium');
+      assert.ok(rule.custom);
+    });
+
+    it('should convert string regex to RegExp', () => {
+      const rule = addCustomRule({
+        name: 'Test Pattern',
+        regex: 'TEST-\\d+',
+        category: 'custom',
+        severity: 'low',
+      });
+
+      assert.ok(rule);
+      assert.ok(rule.regex instanceof RegExp);
+    });
+
+    it('should throw on missing name', () => {
+      assert.throws(
+        () => addCustomRule({ regex: /test/g, category: 'pii', severity: 'low' }),
+        /must have a name/
+      );
+    });
+
+    it('should throw on missing regex', () => {
+      assert.throws(
+        () => addCustomRule({ name: 'Test', category: 'pii', severity: 'low' }),
+        /must have a regex/
+      );
+    });
+
+    it('should throw on invalid severity', () => {
+      assert.throws(
+        () => addCustomRule({ name: 'Test', regex: /test/g, category: 'pii', severity: 'extreme' }),
+        /valid severity/
+      );
+    });
+
+    it('should throw on invalid regex string', () => {
+      assert.throws(
+        () => addCustomRule({ name: 'Test', regex: '[invalid(', category: 'pii', severity: 'low' }),
+        /Invalid regex pattern/
+      );
+    });
+
+    it('should ensure global flag on regex', () => {
+      const rule = addCustomRule({
+        name: 'Test',
+        regex: /TEST/i,
+        category: 'test',
+        severity: 'low',
+      });
+
+      assert.ok(rule.regex.flags.includes('g'));
+    });
+  });
+
+  describe('removeCustomRule', () => {
+    beforeEach(() => {
+      clearCustomRules();
+    });
+
+    it('should remove an existing custom rule', () => {
+      addCustomRule({ name: 'Test1', regex: /test/g, category: 'test', severity: 'low' });
+      assert.equal(getCustomRules().length, 1);
+
+      const removed = removeCustomRule('Test1');
+      assert.ok(removed);
+      assert.equal(getCustomRules().length, 0);
+    });
+
+    it('should return false for non-existent rule', () => {
+      const removed = removeCustomRule('NonExistent');
+      assert.equal(removed, false);
+    });
+  });
+
+  describe('getCustomRules', () => {
+    beforeEach(() => {
+      clearCustomRules();
+    });
+
+    it('should return all custom rules', () => {
+      addCustomRule({ name: 'Test1', regex: /test1/g, category: 'test', severity: 'low' });
+      addCustomRule({ name: 'Test2', regex: /test2/g, category: 'test', severity: 'high' });
+
+      const rules = getCustomRules();
+      assert.equal(rules.length, 2);
+      assert.ok(rules.some(r => r.name === 'Test1'));
+      assert.ok(rules.some(r => r.name === 'Test2'));
+    });
+
+    it('should include regex as source string', () => {
+      addCustomRule({ name: 'Test', regex: /pattern/g, category: 'test', severity: 'low' });
+      const rules = getCustomRules();
+      assert.equal(rules[0].regex, 'pattern');
+    });
+  });
+
+  describe('clearCustomRules', () => {
+    beforeEach(() => {
+      clearCustomRules();
+    });
+
+    it('should remove all custom rules', () => {
+      addCustomRule({ name: 'Test1', regex: /test1/g, category: 'test', severity: 'low' });
+      addCustomRule({ name: 'Test2', regex: /test2/g, category: 'test', severity: 'low' });
+      assert.ok(getCustomRules().length >= 2);
+
+      clearCustomRules();
+      assert.equal(getCustomRules().length, 0);
+    });
+  });
+
+  describe('classifyContentExtended', () => {
+    beforeEach(() => {
+      clearCustomRules();
+    });
+
+    it('should include built-in and custom patterns', () => {
+      addCustomRule({
+        name: 'Company ID',
+        regex: /COMP-\d{4}/g,
+        category: 'pii',
+        severity: 'medium',
+      });
+
+      const result = classifyContentExtended('COMP-1234 and SSN: 123-45-6789');
+      assert.ok(result.hasSensitiveData);
+      assert.ok(result.findings.some(f => f.name === 'Company ID' && f.custom));
+      assert.ok(result.findings.some(f => f.name === 'SSN'));
+    });
+
+    it('should skip custom patterns when includeCustom is false', () => {
+      addCustomRule({
+        name: 'Custom',
+        regex: /CUSTOM-\d+/g,
+        category: 'test',
+        severity: 'low',
+      });
+
+      const result = classifyContentExtended('CUSTOM-123', { includeCustom: false });
+      assert.ok(!result.findings.some(f => f.custom));
+    });
+
+    it('should use ML detection when useML is true', () => {
+      const result = classifyContentExtended('John Smith lives at 123 Main Street', { useML: true });
+      assert.ok(result.findings.some(f => f.ml));
+    });
+
+    it('should handle empty content', () => {
+      const result = classifyContentExtended('');
+      assert.equal(result.hasSensitiveData, false);
+    });
+
+    it('should update summary with custom findings', () => {
+      addCustomRule({
+        name: 'Custom PII',
+        regex: /CUSTOM-\d+/g,
+        category: 'custom_category',
+        severity: 'high',
+      });
+
+      const result = classifyContentExtended('CUSTOM-123 and CUSTOM-456');
+      assert.equal(result.summary.custom_category, 2);
+    });
+  });
+
+  describe('ML detection', () => {
+    it('should detect potential names', () => {
+      const result = classifyContentExtended('Contact John Smith for details', { useML: true });
+      const nameFindings = result.findings.filter(f => f.name === 'Potential Name (ML)');
+      assert.ok(nameFindings.length > 0);
+      assert.ok(nameFindings[0].confidence);
+    });
+
+    it('should detect potential addresses', () => {
+      const result = classifyContentExtended('Address: 123 Main Street', { useML: true });
+      const addrFindings = result.findings.filter(f => f.name === 'Potential Address (ML)');
+      assert.ok(addrFindings.length > 0);
+    });
+
+    it('should detect sensitive context keywords', () => {
+      const result = classifyContentExtended('confidential report internal data', { useML: true });
+      const contextFindings = result.findings.filter(f => f.name === 'Sensitive Context (ML)');
+      assert.ok(contextFindings.length > 0);
+    });
+
+    it('should filter out day/month names from name detection', () => {
+      const result = classifyContentExtended('Monday January meeting', { useML: true });
+      const nameFindings = result.findings.filter(f => f.name === 'Potential Name (ML)');
+      assert.equal(nameFindings.length, 0);
+    });
+
+    it('should mark ML findings with ml flag', () => {
+      const result = classifyContentExtended('123 Oak Avenue', { useML: true });
+      const mlFindings = result.findings.filter(f => f.ml);
+      assert.ok(mlFindings.length > 0);
+      assert.ok(mlFindings[0].confidence);
+    });
+  });
+
+  describe('getMLConfig', () => {
+    it('should return ML configuration', () => {
+      const config = getMLConfig();
+      assert.ok(config);
+      assert.equal(config.available, true);
+      assert.ok(Array.isArray(config.capabilities));
+      assert.ok(config.capabilities.length > 0);
+    });
+
+    it('should indicate heuristic-stub type', () => {
+      const config = getMLConfig();
+      assert.equal(config.type, 'heuristic-stub');
     });
   });
 });

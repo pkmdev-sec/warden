@@ -1,0 +1,54 @@
+{
+  "name": "my-project-policy",
+  "description": "Custom policy for my project — blocks dangerous operations and warns on risky ones",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "id": "block-prod-db",
+      "description": "Block direct production database access",
+      "match": {
+        "command": "*production*database*"
+      },
+      "action": "block",
+      "message": "Direct production database access is not allowed. Use staging or a read replica."
+    },
+    {
+      "id": "block-main-force-push",
+      "description": "Block force push to main branch",
+      "match": {
+        "command": "git push --force*main*"
+      },
+      "action": "block",
+      "message": "Force pushing to main is prohibited. Use a feature branch and PR."
+    },
+    {
+      "id": "warn-env-files",
+      "description": "Warn when accessing environment files",
+      "match": {
+        "file": "**/.env*"
+      },
+      "action": "warn",
+      "message": "Accessing .env files — ensure no secrets are committed."
+    },
+    {
+      "id": "block-secrets",
+      "description": "Block writing to credentials or secret files",
+      "match": {
+        "file": "**/{credentials,secrets,*.pem,*.key}",
+        "operation": "write"
+      },
+      "action": "block",
+      "message": "Cannot write to credential/secret files through Claude Code."
+    },
+    {
+      "id": "warn-dependency-changes",
+      "description": "Warn when modifying dependency files",
+      "match": {
+        "file": "**/package.json",
+        "operation": "write"
+      },
+      "action": "warn",
+      "message": "Modifying package.json — review dependency changes carefully."
+    }
+  ]
+}

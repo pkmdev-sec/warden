@@ -9,6 +9,8 @@ import {
   matchRule,
   getViolations,
   evaluateAction,
+  composePolicies,
+  evaluateComposedPolicy,
 } from '../lib/policy-engine.mjs';
 
 const TEST_DIR = join(tmpdir(), 'warden-test-policies-' + Date.now());
@@ -196,5 +198,99 @@ describe('evaluateAction', () => {
   it('should handle empty action', () => {
     const result = evaluateAction({});
     assert.equal(result.allowed, true);
+  });
+});
+
+describe('composePolicies', () => {
+  const policy1 = {
+    name: 'policy1',
+    rules: [
+      { match: { command: 'rm' }, action: 'block', description: 'Block rm' },
+      { match: { tool: 'Write' }, action: 'allow' },
+    ],
+  };
+
+  const policy2 = {
+    name: 'policy2',
+    rules: [
+      { match: { command: 'delete' }, action: 'block', description: 'Block delete' },
+      { match: { path: '/tmp' }, action: 'warn', description: 'Warn on /tmp' },
+    ],
+  };
+
+  it('should compose policies with AND operator', () => {
+    const composed = composePolicies([policy1, policy2], 'AND', { name: 'strict-combined' });
+    assert.equal(composed.name, 'strict-combined');
+    assert.equal(composed.composition.operator, 'AND');
+    assert.ok(composed.rules.length > 0);
+    assert.ok(composed.rules.some(r => r.sourcePolicy === 'policy1'));
+    assert.ok(composed.rules.some(r => r.sourcePolicy === 'policy2'));
+  });
+
+  it('should compose policies with OR operator', () => {
+    const composed = composePolicies([policy1, policy2], 'OR', { name: 'permissive-combined' });
+    assert.equal(composed.name, 'permissive-combined');
+    assert.equal(composed.composition.operator, 'OR');
+  });
+
+  it('should throw on invalid inputs', () => {
+    assert.throws(() => composePolicies([], 'AND'), /non-empty array/);
+    assert.throws(() => composePolicies([policy1], 'INVALID'), /must be "AND" or "OR"/);
+    assert.throws(() => composePolicies([{ foo: 'bar' }], 'AND'), /must have a name and rules/);
+  });
+
+  it('should evaluate AND composition - block if any policy blocks', () => {
+    const composed = composePolicies([policy1, policy2], 'AND');
+    const result1 = evaluateComposedPolicy(composed, { command: 'rm file.txt' });
+    assert.equal(result1.allowed, false);
+    assert.ok(result1.violations.length > 0);
+
+    const result2 = evaluateComposedPolicy(composed, { command: 'delete file.txt' });
+    assert.equal(result2.allowed, false);
+  });
+
+  it('should evaluate OR composition - allow if at least one allows', () => {
+    const composed = composePolicies([policy1, policy2], 'OR');
+
+    // Only policy1 would block 'rm', policy2 doesn't match
+    const result1 = evaluateComposedPolicy(composed, { command: 'rm file.txt' });
+    // OR: blocks only if ALL policies that match would block
+    // Since policy2 doesn't match at all, it's not considered
+    assert.equal(result1.allowed, false); // policy1 matches and blocks
+
+    // Both would block the same thing
+    const blockAll = {
+      name: 'blockall',
+      rules: [{ match: { command: '.*' }, action: 'block' }],
+    };
+    const composed2 = composePolicies([blockAll, blockAll], 'OR');
+    const result2 = evaluateComposedPolicy(composed2, { command: 'anything' });
+    assert.equal(result2.allowed, false); // Both match and block
+  });
+
+  it('should handle empty policy composition', () => {
+    const composed = composePolicies([policy1], 'AND');
+    const result = evaluateComposedPolicy(composed, { tool: 'Read' });
+    assert.equal(result.allowed, true);
+  });
+
+  it('should track source policies in violations', () => {
+    const composed = composePolicies([policy1, policy2], 'AND');
+    const result = evaluateComposedPolicy(composed, { command: 'rm file.txt' });
+    assert.ok(result.violations.some(v => v.sourcePolicy === 'policy1'));
+  });
+
+  it('should handle warnings in composed policies', () => {
+    const composed = composePolicies([policy1, policy2], 'AND');
+    const result = evaluateComposedPolicy(composed, { path: '/tmp/test' });
+    assert.equal(result.allowed, true);
+    assert.ok(result.warnings.length > 0);
+  });
+
+  it('should handle invalid composed policy evaluation gracefully', () => {
+    // Should not throw but return safe defaults
+    const result = evaluateComposedPolicy({}, { command: 'test' });
+    assert.ok(result);
+    assert.equal(result.allowed, true); // Default to allow on error
   });
 });
