@@ -1,0 +1,67 @@
+{
+  "name": "enterprise",
+  "description": "Strict enterprise governance policies for production environments",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "description": "Block all access to production database configs",
+      "match": { "pattern": "prod.*database|database.*prod" },
+      "action": "block"
+    },
+    {
+      "description": "Block direct production server access",
+      "match": { "command": "ssh.*prod" },
+      "action": "block"
+    },
+    {
+      "description": "Block deployment commands without approval",
+      "match": { "command": "deploy|kubectl\\s+apply|terraform\\s+apply" },
+      "action": "block"
+    },
+    {
+      "description": "Block modifying CI/CD pipelines",
+      "match": { "path": "**/.github/workflows*" },
+      "action": "block"
+    },
+    {
+      "description": "Block Dockerfile modifications",
+      "match": { "path": "**/Dockerfile*", "tool": "Write" },
+      "action": "warn"
+    },
+    {
+      "description": "Block package registry publish",
+      "match": { "command": "npm\\s+publish|pip\\s+upload|cargo\\s+publish" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on any git force operations",
+      "match": { "command": "git.*--force|git.*-f" },
+      "action": "block"
+    },
+    {
+      "description": "Block access to infrastructure secrets",
+      "match": { "path": "**/infrastructure/secrets*" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on installing new dependencies",
+      "match": { "command": "npm\\s+install|pip\\s+install|cargo\\s+add" },
+      "action": "warn"
+    },
+    {
+      "description": "Block database migration commands",
+      "match": { "command": "migrate|knex\\s+migrate|prisma\\s+migrate" },
+      "action": "warn"
+    },
+    {
+      "description": "Block access to private key files",
+      "match": { "pattern": "\\.pem|\\.key|id_rsa" },
+      "action": "block"
+    },
+    {
+      "description": "Block curl/wget to external URLs in production",
+      "match": { "command": "curl|wget" },
+      "action": "warn"
+    }
+  ]
+}

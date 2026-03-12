@@ -1,0 +1,57 @@
+{
+  "name": "hipaa",
+  "description": "HIPAA compliance policies for healthcare data protection",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "description": "Block access to patient data directories",
+      "match": { "path": "**/patient*" },
+      "action": "block"
+    },
+    {
+      "description": "Block access to medical records",
+      "match": { "pattern": "medical.record|health.record|patient.record" },
+      "action": "block"
+    },
+    {
+      "description": "Block PHI in commands (SSN patterns)",
+      "match": { "command": "\\d{3}-\\d{2}-\\d{4}" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on any database query against health tables",
+      "match": { "command": "SELECT.*FROM.*(patient|diagnosis|prescription|treatment)" },
+      "action": "warn"
+    },
+    {
+      "description": "Block exporting health data",
+      "match": { "command": "export|dump|backup.*(patient|health|medical)" },
+      "action": "block"
+    },
+    {
+      "description": "Block unencrypted data transmission",
+      "match": { "command": "http://.*patient|http://.*health" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on access to EHR system files",
+      "match": { "path": "**/ehr/*" },
+      "action": "warn"
+    },
+    {
+      "description": "Block access to audit trail tampering",
+      "match": { "path": "**/audit*", "tool": "Write" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on bulk data operations",
+      "match": { "command": "SELECT\\s+\\*|DELETE\\s+FROM|TRUNCATE" },
+      "action": "warn"
+    },
+    {
+      "description": "Block sharing PHI via external services",
+      "match": { "command": "curl.*patient|wget.*health" },
+      "action": "block"
+    }
+  ]
+}

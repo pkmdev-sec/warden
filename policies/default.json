@@ -1,0 +1,47 @@
+{
+  "name": "default",
+  "description": "Basic safety rules for standard development workflows",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "description": "Block access to system shadow files",
+      "match": { "path": "/etc/shadow" },
+      "action": "block"
+    },
+    {
+      "description": "Block access to SSH private keys",
+      "match": { "path": "/root/.ssh" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on recursive force delete",
+      "match": { "command": "rm\\s+-rf\\s+/" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on force push to git",
+      "match": { "command": "git\\s+push.*--force" },
+      "action": "warn"
+    },
+    {
+      "description": "Block dropping database tables",
+      "match": { "command": "DROP\\s+TABLE" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on environment file access",
+      "match": { "pattern": "\\.env" },
+      "action": "warn"
+    },
+    {
+      "description": "Block credential file writes",
+      "match": { "path": "**/.credentials*", "tool": "Write" },
+      "action": "block"
+    },
+    {
+      "description": "Warn on process kill commands",
+      "match": { "command": "kill\\s+-9" },
+      "action": "warn"
+    }
+  ]
+}

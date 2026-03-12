@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#dc2626" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#dc2626" stroke-width="0.5" opacity="0.06"/>
+    </pattern>
+  </defs>
+  <rect width="1500" height="500" fill="#000000"/>
+  <rect width="1500" height="500" fill="url(#grid)"/>
+  <rect y="0" width="1500" height="2" fill="url(#accentGrad)" opacity="0.8"/>
+  <rect y="498" width="1500" height="2" fill="url(#accentGrad)" opacity="0.4"/>
+  <!-- Shield with lock logo -->
+  <g transform="translate(750, 190)" filter="url(#glow)">
+    <!-- Shield shape -->
+    <path d="M0,-40 L30,-28 L30,5 C30,25 15,38 0,45 C-15,38 -30,25 -30,5 L-30,-28Z" fill="none" stroke="#dc2626" stroke-width="2.5" opacity="0.9"/>
+    <!-- Lock body -->
+    <rect x="-10" y="-5" width="20" height="16" rx="2" fill="none" stroke="#dc2626" stroke-width="1.8" opacity="0.7"/>
+    <!-- Lock shackle -->
+    <path d="M-6,-5 L-6,-12 C-6,-18 6,-18 6,-12 L6,-5" fill="none" stroke="#dc2626" stroke-width="1.8" opacity="0.7"/>
+    <!-- Keyhole -->
+    <circle cx="0" cy="4" r="3" fill="#dc2626" opacity="0.5"/>
+    <rect x="-1" y="4" width="2" height="5" fill="#dc2626" opacity="0.5"/>
+  </g>
+  <!-- Decorative guard towers -->
+  <g filter="url(#softGlow)" opacity="0.12">
+    <rect x="150" y="100" width="2" height="300" fill="#dc2626"/>
+    <rect x="140" y="100" width="22" height="3" fill="#dc2626"/>
+    <rect x="1348" y="100" width="2" height="300" fill="#dc2626"/>
+    <rect x="1338" y="100" width="22" height="3" fill="#dc2626"/>
+  </g>
+  <!-- Title -->
+  <text x="750" y="290" text-anchor="middle" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="72" font-weight="700" letter-spacing="18" fill="url(#accentGrad)" filter="url(#glow)">WARDEN</text>
+  <!-- Subtitle -->
+  <text x="750" y="330" text-anchor="middle" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="16" font-weight="300" letter-spacing="6" fill="#dc2626" opacity="0.7">ENTERPRISE POLICY ENFORCEMENT</text>
+  <!-- Decorative line -->
+  <rect x="600" y="345" width="300" height="1" fill="url(#glowGrad)"/>
+  <!-- Bottom tagline -->
+  <text x="750" y="420" text-anchor="middle" font-family="'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-size="12" letter-spacing="3" fill="#555555">GOVERNANCE THROUGH VIGILANCE</text>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "name": "warden",
+  "version": "1.0.0",
+  "description": "Enterprise policy enforcement — audit trails, compliance reporting, data classification",
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency 1 tests/*.test.mjs"
+  },
+  "keywords": ["policy", "compliance", "audit", "governance", "security"],
+  "license": "MIT"
+}
